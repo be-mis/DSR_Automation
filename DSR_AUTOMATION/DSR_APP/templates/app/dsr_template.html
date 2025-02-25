@@ -1,0 +1,216 @@
+<label for="file-filter">Filter by File:</label>
+
+<select name="selected_file" id="file-filter">
+    <option value="">-- Select File --</option>
+    {% for name in original_names %}
+    <option value="{{ name }}">{{ name }}</option>
+    {% endfor %}
+</select>
+<style>
+    .table-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 20px; /* Space between tables */
+    }
+    
+    .table-wrapper {
+        flex: 1; /* Allows tables to grow and shrink equally */
+        overflow-x: auto; /* Ensures horizontal scroll if table is too wide */
+    }
+    
+    .table-wrapper table {
+        width: 100%; /* Ensures tables fill their container */
+    }
+    
+    /* Adjust table styles if needed */
+    table {
+        border-collapse: collapse;
+    }
+    
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+    }
+</style>
+
+<h3 id="total-qty-container" style="display: none;">
+    Total Quantity Sold: <span id="total-qty">{{ totalqty }}</span>
+</h3>
+<br/>
+<br/>
+
+<div class = "input-field">
+    <input type="hidden" id="fetch_remarks_url" value="{% url 'fetch-remarks' %}">
+
+    <form method="POST" action="#">
+        {% csrf_token %}
+        
+        <label for="doc_date">Enter Date:</label>
+        <input type="date" id="doc_date" name="doc_date" required>
+
+        <label for="database_type">Database:</label>
+        <select id="database_type" name="database_type" required onchange="fetchRemarks()">
+            <option disabled selected value="">--Choose Database--</option>
+            <option value="EPC">EPC_SBOLIVE</option>
+            <option value="NBFI">NBFI_SBOLIVE</option>
+            <option value="EPCTEST">Z_EPC_TEST</option>
+            <option value="NBFITEST">Z_NBFI_TEST</option>
+        </select>
+
+        <label for="doc_remarks">Remarks:</label>
+        <input type="text" id="doc_remarks" name="doc_remarks" required placeholder="Start typing for suggestions..." autocomplete="off">
+        <ul id="remarks-suggestions" class="suggestions-list" style="display:none;"></ul> <!-- Suggestions will be listed here -->
+        
+        <button type="submit">Check DSR</button>
+    </form>
+</div>
+
+
+        <div>
+            <strong>Remarks:</strong> <span id="remarks-text">{{ remarks }}</span> 
+        </div>
+
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>BP Code</th>
+                            <th>Total Qty Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table">
+                        {% for data in processed_data %}
+                        <tr>
+                            <td>{{ data.bp_code }}</td>
+                            <td>{{ data.total_qty_sold }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        
+            <div class="table-wrapper">
+                <h1>DSR Detailed Result</h1>
+                {% if items %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for header in headers %}
+                                    <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in items %}
+                                <tr>
+                                    {% for key, value in row.items %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No data available for the selected date and remarks.</p>
+                {% endif %}
+            </div>
+        </div>
+
+
+
+<script>
+    document.getElementById("file-filter").addEventListener("change", function () {
+        let selectedFile = this.value;
+        let instance = "{{ instance }}";  
+        let totalQtyContainer = document.getElementById("total-qty-container");
+        let totalQtySpan = document.getElementById("total-qty");  
+        let tableBody = document.getElementById("data-table");
+    
+        if (!selectedFile) {  
+            totalQtyContainer.style.display = "none";
+            totalQtySpan.textContent = "0";
+            tableBody.innerHTML = "<tr><td colspan='3'>Select a file to view data</td></tr>"; // ✅ Ensure 3 columns
+            return;
+        }
+    
+        fetch(`/validate/${instance}/?selected_file=${encodeURIComponent(selectedFile)}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(response => response.json())
+        .then(data => {
+            tableBody.innerHTML = "";  // Clear table
+        
+            if (data.processed_data.length === 0) {
+                tableBody.innerHTML = "<tr><td colspan='2'>No data available for this file</td></tr>";
+                totalQtyContainer.style.display = "none"; 
+                return;
+            }
+        
+            let totalQty = data.total_qty_sold; 
+        
+            data.processed_data.forEach(row => {
+                let tr = document.createElement("tr");
+                tr.innerHTML = `<td>${row.bp_code}</td><td>${row.total_qty_sold}</td>`; // ✅ Now includes remarks
+                tableBody.appendChild(tr);
+            });
+        
+            totalQtySpan.textContent = totalQty;
+            totalQtyContainer.style.display = "block";
+        })
+        .catch(error => console.error("Error fetching data:", error));
+    });
+    
+
+    function fetchRemarks() {
+        var docDate = document.getElementById('doc_date').value;
+        var databaseType = document.getElementById('database_type').value;
+        var url = document.getElementById('fetch_remarks_url').value + `?doc_date=${docDate}&database_type=${databaseType}`;
+
+        if (docDate && databaseType) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Store remarks in a global variable
+                    window.remarksList = data.remarks;
+                })
+                .catch(error => {
+                    console.error('Error fetching remarks:', error);
+                });
+        }
+    }
+
+    // Filter suggestions based on input
+    document.getElementById('doc_remarks').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const suggestions = document.getElementById('remarks-suggestions');
+
+        // Show the suggestions list if the user starts typing
+        if (query) {
+            const filteredRemarks = window.remarksList.filter(remark => remark.toLowerCase().includes(query));
+
+            // Clear previous suggestions
+            suggestions.innerHTML = '';
+
+            // Populate suggestions
+            filteredRemarks.forEach(remark => {
+                const suggestionItem = document.createElement('li');
+                suggestionItem.textContent = remark;
+                suggestionItem.onclick = function() {
+                    document.getElementById('doc_remarks').value = remark; // Set the clicked remark in input field
+                    suggestions.style.display = 'none'; // Hide suggestions
+                };
+                suggestions.appendChild(suggestionItem);
+            });
+
+            // Show or hide suggestions
+            suggestions.style.display = filteredRemarks.length > 0 ? 'block' : 'none';
+        } else {
+            suggestions.style.display = 'none'; // Hide suggestions if input is empty
+        }
+    });
+
+</script>

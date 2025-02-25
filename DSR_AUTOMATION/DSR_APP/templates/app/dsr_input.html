@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check DSR Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa; /* Light background for better contrast */
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white; /* White background for the form */
+            padding: 20px; /* Padding around the form */
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            position: relative; /* Added relative positioning for the suggestions */
+        }
+        label {
+            margin-bottom: 8px; /* Adjusted margin for consistency */
+            font-weight: bold;
+        }
+        input[type="date"], select, textarea, input[type="text"], button {
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            width: 100%; /* Make input and select fields fill the container */
+            border: 1px solid #ced4da; /* Border for input fields */
+            border-radius: 4px; /* Rounded corners for input fields */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+        }
+        textarea {
+            resize: vertical; /* Allow vertical resizing only */
+            height: 100px; /* Set a default height for the textarea */
+        }
+        .suggestions-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            position: absolute;
+            width: calc(100% - 22px); /* Adjust width to fit the input */
+            box-sizing: border-box;
+            z-index: 1000;
+            top: 100%; /* Position the suggestions list just below the input */
+            left: 0; /* Align suggestions list to the left of the input */
+        }
+        .suggestions-list li {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .suggestions-list li:hover {
+            background-color: #f1f1f1;
+        }
+        button {
+            background-color: #28a745; /* Green background for button */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838; /* Darker green on hover */
+        }
+    </style>
+</head>
+<body>
+
+    <input type="hidden" id="fetch_remarks_url" value="{% url 'fetch-remarks' %}">
+
+    <form method="POST" action="#">
+        {% csrf_token %}
+        
+        <label for="doc_date">Enter Date:</label>
+        <input type="date" id="doc_date" name="doc_date" required>
+
+        <label for="database_type">Database:</label>
+        <select id="database_type" name="database_type" required onchange="fetchRemarks()">
+            <option disabled selected value="">--Choose Database--</option>
+            <option value="EPC">EPC_SBOLIVE</option>
+            <option value="NBFI">NBFI_SBOLIVE</option>
+            <option value="EPCTEST">Z_EPC_TEST</option>
+            <option value="NBFITEST">Z_NBFI_TEST</option>
+        </select>
+
+        <label for="doc_remarks">Remarks:</label>
+        <input type="text" id="doc_remarks" name="doc_remarks" required placeholder="Start typing for suggestions..." autocomplete="off">
+        <ul id="remarks-suggestions" class="suggestions-list" style="display:none;"></ul> <!-- Suggestions will be listed here -->
+        
+        <button type="submit">Check DSR</button>
+    </form>
+    <script>
+        document.getElementById('doc_date').addEventListener('change', fetchRemarks);
+        document.getElementById('database_type').addEventListener('change', fetchRemarks);
+    
+        function fetchRemarks() {
+            var docDate = document.getElementById('doc_date').value;
+            var databaseType = document.getElementById('database_type').value;
+            var url = document.getElementById('fetch_remarks_url').value;
+        
+            if (docDate || databaseType) {
+                let params = new URLSearchParams();
+                if (docDate) params.append("doc_date", docDate);
+                if (databaseType) params.append("database_type", databaseType);
+        
+                fetch(`${url}?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Ensure the list is always an array
+                        window.remarksList = Array.isArray(data.remarks) ? data.remarks : [];
+                    })
+                    .catch(error => {
+                        console.error('Error fetching remarks:', error);
+                        window.remarksList = []; // Ensure it's always an array
+                    });
+            }
+        }
+        
+    
+        // Filter suggestions based on input
+        document.getElementById('doc_remarks').addEventListener('input', function () {
+            const query = this.value.toLowerCase();
+            const suggestions = document.getElementById('remarks-suggestions');
+        
+            if (query && Array.isArray(window.remarksList)) {
+                const filteredRemarks = window.remarksList
+                    .filter(remark => remark && remark.toLowerCase().includes(query)); // Ensure remark is not null
+        
+                suggestions.innerHTML = '';
+        
+                filteredRemarks.forEach(remark => {
+                    const suggestionItem = document.createElement('li');
+                    suggestionItem.textContent = remark;
+                    suggestionItem.onclick = function () {
+                        document.getElementById('doc_remarks').value = remark;
+                        suggestions.style.display = 'none';
+                    };
+                    suggestions.appendChild(suggestionItem);
+                });
+        
+                suggestions.style.display = filteredRemarks.length > 0 ? 'block' : 'none';
+            } else {
+                suggestions.style.display = 'none';
+            }
+        });
+        
+    </script>
+    
+
+</body>
+</html>

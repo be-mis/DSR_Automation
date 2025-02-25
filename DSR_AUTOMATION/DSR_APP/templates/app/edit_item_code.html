@@ -1,0 +1,78 @@
+{% load static %}
+{% load humanize %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Item Code</title>
+    <!-- Add Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2 class="mb-4">Edit Item Code</h2>
+
+        <form method="post" class="table-responsive">
+            {% csrf_token %}
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <th>Item Code</th>
+                        <td>
+                            <input
+                                type="text"
+                                name="item_code"
+                                value="{{ row.item_code }}"
+                                class="form-control"
+                                required
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>SKU</th>
+                        <td>{{ row.matcode }}</td>
+                    </tr>
+                    <tr>
+                        <th>Item Description</th>
+                        <td>{{ row.item_description }}</td>
+                    </tr>
+                    <tr>
+                        <th>Branch</th>
+                        <td>{{ row.store_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date</th>
+                        <td>{{ row.date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Quantity Sold</th>
+                        <td>{{ row.qty_sold }}</td>
+                    </tr>
+                    <tr>
+                        <th>Total Amount</th>
+                        <td>{{ row.total_amount }}</td>
+                    </tr>
+                    <tr>
+                        <th>Unit Amount</th>
+                        <td>{{ row.unit_amount }}</td>
+                    </tr>
+                    <tr>
+                        <th>BP Code</th>
+                        <td>{{ row.bp_code }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="d-flex justify-content-between mt-3">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Go Back</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Add Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

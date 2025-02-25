@@ -1,0 +1,304 @@
+{% load static %}
+{% load humanize %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Generated Data</title>
+
+    <!-- Add Bootstrap CSS -->
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    
+    <style>
+        /* Style the rest of the form */
+        body {
+            padding: 20px;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-content 0.3s ease-out;
+        }
+        .accordion-content.show {
+            max-height: max-content; /* Adjust this value based on your content */
+            display: block;
+        }
+        </style>
+</head>
+
+<body>
+    <a href = "javascript:history.back()" class="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-xs cursor-pointer hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">Back</a>
+    <br/>
+    <br/>
+
+      <br/>
+      <br/>
+    <div style="margin: auto;" class="rounded-md p-4 border border-gray-900/25">            
+        <div class="space-y-12">
+            <div class="border-b border-gray-900/10 pb-12">
+            <!-- <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"> -->
+            <h1 class="text-base/7 font-semibold text-gray-900">EXTRACTED DATA</h1>
+            {% if has_data %}
+            <form action="{% url 'download-excel' instance %}" method="get">
+                <button type="submit" class="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-xs cursor-pointer hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                    Download Excel
+                </button>
+            </form>
+            {% endif %}
+                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="col-span-full">
+                        {% for file in files %}
+                        {% if not file.chain or not file.database %}
+                        <h1 class="text-base/7 font-semibold text-gray-900">MISSING: PLEASE INCLUDE BU AND CHAIN FOR "{{ file.original_name }}"</h1>
+                        {% endif %}
+                        {% endfor %}
+                    
+                        <div class="bg-white shadow-md rounded-lg">
+                            {% for file in files %}
+                            {% if file.chain != 'Empty' and file.database != 'Empty' and file.chain != None and file.database != None %}
+                            <div class="accordion-item">
+                                <button class="flex items-center justify-between w-full p-5 cursor-pointer font-medium rtl:text-right text-gray-500 border border-gray-200 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 gap-3" onclick="toggleAccordion(this)">
+                                    <span class="font-semibold">
+                                        {{ file.original_name }}
+                                        {% if file.special_remarks %} {{ file.special_remarks }} {% endif %}
+                                    </span>
+                                    <span class="ml-auto">&#x25BC;</span>
+                                </button>
+                                <div class="accordion-content px-4">
+                                    <div class="py-4">
+                                        {% if file.total_amount_raw != file.total_amount_template %}
+                                        <p><strong>WARNING: Please check raw file's 'Quantity' column</strong></p>
+                                        <p><strong>Total Gross (RAW FILE):</strong><span style="color:red"> PHP {{ file.total_amount_raw }}</span></p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="py-4">
+                                        {% if file.extracted_data %}
+                                            <p><strong>Total Quantity Sold:</strong> {{ file.total_qty_sold }}</p>
+                                            <p><strong>Total Gross:</strong> PHP {{ file.total_amount_template }}</p>
+                                            <br/>
+                                            <table id="dataTable{{ forloop.counter }}" class="table-fixed w-full border border-gray-300 border-separate border-spacing-2 text-sm text-left rtl:text-right text-gray-800 dark:text-gray-700">
+                                                <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                                    <tr>
+                                                        <th scope="col" class="w-2/14">Item Code</th>
+                                                        <th scope="col" class="w-1/14">SKU</th>
+                                                        <th scope="col" class="w-4/14">Item Description</th>
+                                                        <th scope="col" class="w-2/14">Branch Name</th>
+                                                        {% if file.id not in files_with_missing_date_ids %}
+                                                        <th scope="col" class="w-1/14">Date</th>
+                                                        {% endif %}
+                                                        <th scope="col" class="w-1/14">Quantity Sold</th>
+                                                        <th scope="col" class="w-1/14">Unit Price</th>
+                                                        <th scope="col" class="w-1/14">Gross Amount</th>
+                                                        <th scope="col" class="w-1/14">BP Code</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tableBody{{ forloop.counter }}">
+                                                    {% for row in file.extracted_data|slice:":10" %}
+                                                    <tr class="border-b border-gray-200">
+                                                        <td>{{ row.item_code }}</td>
+                                                        <td>{{ row.matcode }}</td>
+                                                        <td>{{ row.item_description }}</td>
+                                                        <td>{{ row.store_name }}</td>
+                                                        {% if row.date %}<td>{{ row.date }}</td>{% endif %}
+                                                        <td>{{ row.qty_sold }}</td>
+                                                        <td>{{ row.unit_amount }}</td>
+                                                        <td>{{ row.total_amount }}</td>
+                                                        <td>{{ row.bp_code }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                            <div class="pagination" id="pagination{{ forloop.counter }}">
+                                                <button onclick="changePage(-1, {{ forloop.counter }})">Previous</button>
+                                                <span id="pageNumber{{ forloop.counter }}">1</span>
+                                                <button onclick="changePage(1, {{ forloop.counter }})">Next</button>
+                                            </div>
+                                        {% else %}
+                                            <span>No data</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Success Alert -->
+    <div id="successAlert" style="display: none;" class="fixed top-4 left-1/2 transform -translate-x-1/2 p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg shadow-lg" role="alert">
+        <svg class="w-5 h-5 mr-2 text-green-700 inline" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 1a9 9 0 100 18 9 9 0 000-18zm-1 13.293l-4-4 1.414-1.414L9 11.586l5.586-5.586L16 7l-7 7z" />
+        </svg>
+        <span class="font-medium">Success!</span> Your operation was completed successfully.
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorAlert" style="display: none;" class="fixed top-4 left-1/2 transform -translate-x-1/2 p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg shadow-lg" role="alert">
+        <svg class="w-5 h-5 mr-2 text-red-700 inline" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M10 1a9 9 0 100 18 9 9 0 000-18zm1 13a1 1 0 11-2 0h2zm-1-10a1 1 0 011 1v6a1 1 0 11-2 0V5a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        <span class="font-medium">Error!</span>
+        <div id="messageDisplay" class="pt-2"></div>
+    </div>
+
+
+    <!-- Add Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function changePage(direction, tableId) {
+            let tableBody = document.getElementById("tableBody" + tableId);
+            if (!tableBody) return; // Ensure the table exists
+        
+            let rows = tableBody.children;
+            let pageSize = 10;
+            let totalRows = rows.length;
+            let totalPages = Math.ceil(totalRows / pageSize);
+            let pageNumberElement = document.getElementById("pageNumber" + tableId);
+            let currentPage = parseInt(pageNumberElement.textContent);
+            let newPage = currentPage + direction;
+        
+            if (newPage < 1 || newPage > totalPages) return;
+        
+            pageNumberElement.textContent = newPage;
+        
+            for (let i = 0; i < totalRows; i++) {
+                rows[i].style.display = (i >= (newPage - 1) * pageSize && i < newPage * pageSize) ? "table-row" : "none";
+            }
+        }
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll("[id^=tableBody]").forEach((tableBody, index) => {
+                let rows = tableBody.children;
+                let pageSize = 10;
+        
+                for (let i = pageSize; i < rows.length; i++) {
+                    rows[i].style.display = "none";
+                }
+        
+                let pageNumberElement = document.getElementById("pageNumber" + (index + 1));
+                if (pageNumberElement) {
+                    pageNumberElement.textContent = "1"; // Initialize page number
+                }
+            });
+        });
+        
+    let message = "";
+
+        function toggleAccordion(button) {
+            const content = button.nextElementSibling;
+            content.classList.toggle('show');
+            const icon = button.querySelector('span:last-child');
+            icon.innerHTML = content.classList.contains('show') ? '&#x25B2;' : '&#x25BC;';
+        }
+
+
+        function saveField(cell, fieldName) {
+            const newValue = cell.innerText.trim();
+            const rowId = cell.id.split('-')[2]; // Extract row_id
+            const fileId = cell.dataset.fileId; // Ensure file ID is stored in the dataset
+        
+            fetch(`/edit-field/${fieldName}/${rowId}/${fileId}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({ [fieldName]: newValue })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`${fieldName} updated successfully!`);
+                    cell.dataset.originalValue = newValue; // Update value
+                    cell.style.color = "orange"; // Change color for visual confirmation
+                } else {
+                    message = `Failed to update ${fieldName}.`
+                    document.getElementById('messageDisplay').innerText = message;
+                    showErrorAlert();
+                    setTimeout(hideAlerts, 3000);
+                    cell.innerText = cell.dataset.originalValue; // Revert value
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                cell.innerText = cell.dataset.originalValue; // Revert value
+            });
+        }
+        
+        document.addEventListener("DOMContentLoaded", function () {
+            const editableCells = document.querySelectorAll("[contenteditable='true']");
+            
+            editableCells.forEach(function (cell) {
+                cell.addEventListener("focus", function () {
+                    cell.dataset.originalValue = cell.innerText.trim();
+                });
+        
+                cell.addEventListener("blur", function () {
+                    const originalValue = cell.dataset.originalValue;
+                    const newValue = cell.innerText.trim();
+        
+                    if (newValue !== originalValue) {
+                        if (cell.id.startsWith("item-code")) {
+                            saveField(cell, "item_code");
+                        } else if (cell.id.startsWith("bp-code")) {
+                            saveField(cell, "bp_code");
+                        }
+                    }
+                });
+        
+                cell.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        cell.blur();
+                    }
+                });
+            });
+        });
+        
+
+
+    function filterTable(tableId) {
+        const table = document.getElementById(tableId);
+        const rows = [...table.querySelectorAll("tbody tr")];
+        const filters = [...table.querySelectorAll(".filter-input")].map(input => input.value.toLowerCase());
+
+        rows.forEach(row => {
+            const cells = [...row.querySelectorAll("td")];
+            const match = filters.every((filter, index) =>
+                !filter || cells[index]?.textContent.toLowerCase().includes(filter)
+            );
+            row.style.display = match ? "" : "none";
+        });
+    }
+
+    function showSuccessAlert() {
+        document.getElementById('successAlert').style.display = 'block';
+        document.getElementById('errorAlert').style.display = 'none';
+    }
+
+    function showErrorAlert() {
+        document.getElementById('errorAlert').style.display = 'block';
+        document.getElementById('successAlert').style.display = 'none';
+    }
+
+    function hideAlerts() {
+        document.getElementById('successAlert').style.display = 'none';
+        document.getElementById('errorAlert').style.display = 'none';
+    }   
+
+    </script>
+    
+</body>
+</html>

@@ -1,0 +1,50 @@
+from django import forms
+from . models import DSR, Validation
+
+class DSRFormInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+class DSRForm(forms.FileField): #FileField
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", DSRFormInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        # Handle single or multiple files
+        cleaned_files = []
+        if isinstance(data, (list, tuple)):  # Handle multiple files
+            for file_data in data:
+                cleaned_files.append(super().clean(file_data, initial))
+        else:  # Handle single file
+            cleaned_files.append(super().clean(data, initial))
+        return cleaned_files
+    
+    
+class FileFieldForm(forms.Form):
+    file_field = DSRForm()
+
+
+
+
+
+class ValidationFormInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+class ValidForm(forms.FileField): #FileField
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", ValidationFormInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        # Handle single or multiple files
+        cleaned_files = []
+        if isinstance(data, (list, tuple)):  # Handle multiple files
+            for file_data in data:
+                cleaned_files.append(super().clean(file_data, initial))
+        else:  # Handle single file
+            cleaned_files.append(super().clean(data, initial))
+        return cleaned_files
+    
+    
+class ValidationForm(forms.Form):
+    file_field = ValidForm()

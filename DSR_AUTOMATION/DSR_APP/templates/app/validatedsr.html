@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+    </head>
+    <body>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Store Name</th>
+                    <th>Store Code</th>
+                    <th>Date</th>
+                    <th>BP Code</th>
+                    <th>Extracted Qty Sold</th>
+                    <th>SAP Qty Sold</th>
+                    <th>Extracted Total Amount</th>
+                    <th>SAP Total Amount</th>
+                    <th>Extracted Remarks</th>
+                    <th>SAP Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison_result %}
+                <tr>
+                    <td>{{ row.store_name }}</td>
+                    <td>{{ row.store_code }}</td>
+                    <td>{{ row.date }}</td>
+                    <td>{{ row.bp_code }}</td>
+                    <td>{{ row.qty_sold_extracted }}</td>
+                    <td>{{ row.qty_sold_sap }}</td>
+                    <td>{{ row.total_amount_extracted }}</td>
+                    <td>{{ row.total_amount_sap }}</td>
+                    <td>{{ row.remarks_extracted }}</td>
+                    <td>{{ row.remarks_sap }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+    </body>
+</html>

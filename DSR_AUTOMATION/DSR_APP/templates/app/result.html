@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP Data</title>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #15803d; /* Green heading */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    th {
+        background-color: #15803d; /* Green background */
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f1f5f9;
+    }
+
+    tr:hover {
+        background-color: #d1fae5; /* Light green for hover effect */
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 20px;
+        background-color: #fef2f2; /* Light red for emphasis */
+        color: #991b1b; /* Dark red text */
+        border: 1px solid #fca5a5;
+        border-radius: 8px;
+        font-size: 1.1em;
+        margin-top: 20px;
+    }
+</style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.body.classList.add("loading");
+        });
+
+        window.addEventListener("load", function () {
+            document.body.classList.remove("loading");
+        });
+    </script>
+</head>
+<body>
+    <div id="loading">Loading, please wait...</div>
+
+    <h1>SAP Hana Query Results</h1>
+
+    {% if items %}
+    <table>
+        <thead>
+            <tr>
+                {% for header in headers %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in items %}
+                <tr>
+                    {% for value in row.values %}
+                        <td>
+                            <a href="{% url 'display-detailed-dsr' doc_date=doc_date doc_remarks=doc_remarks database_type=database_type %}">
+                                {{ value }}
+                            </a>
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% elif error %}
+        <p class="no-data">{{ error }}</p>
+    {% else %}
+        <div class="no-data">No data to display. Please check your query or try again later.</div>
+    {% endif %}
+    
+</body>
+</html>

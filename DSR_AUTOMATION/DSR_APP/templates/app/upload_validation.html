@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Files</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style>
+        /* Simple CSS for loading spinner */
+        #loading {
+            display: flex;
+            position: fixed; /* Ensure the spinner covers the entire viewport */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            justify-content: center; /* Center horizontally */
+            align-items: center;  /* Center vertically */
+            z-index: 9999; /* Make sure it appears above all content */
+        }
+    
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+    
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    
+        /* Style the rest of the form */
+        body {
+            padding: 20px;
+        }
+    
+        /* Error message styling */
+        .error {
+            color: red;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+    
+</head>
+<body>
+    <div>
+        <a href="{% url 'upload-page' %}" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 transition">Upload</a>
+    </div>
+    <div style="margin: auto;" class="w-3xl rounded-md p-4 border border-gray-900/25">
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+        {% csrf_token %}
+        <div class="space-y-12">
+          <div class="border-b border-gray-900/10 pb-12">
+            <h1 class="text-base/7 font-semibold text-gray-900">DSR VALIDATION</h1>
+            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+                <div class="col-span-full">
+                  <label for="cover-photo" class="block text-sm/6 text-gray-900 font-bold">Upload File</label>
+                  <div id="drop-area" class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+                    <div class="text-center">
+                        <svg class="mx-auto size-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+                            <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clip-rule="evenodd" />
+                        </svg>
+                        <div class="mt-4 flex text-sm/6 text-gray-600">
+                            <label hidden for="file-upload" class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:outline-hidden hover:text-indigo-500">
+                                {{  form.as_p }}
+                            </label>
+                        </div>
+                        <p class="pl-1">Drag and Drop files to upload</p>
+                        <p class="text-xs/5 text-gray-600">Supported file types: <b>xls, xlsx, xlsm, csv, xlsb, xltx, xltm</b></p>
+                    </div>
+                </div>
+                  <div id="file-list" class="mt-4">
+                      <h3 class="text-sm/6 text-gray-900 font-bold">Uploaded Files:</h3>
+                      <div id="uploaded-files" class="list-disc pl-5 text-sm/6 text-gray-800 p-4">
+                      </div>
+                      <!-- <ul id="uploaded-files" class="list-disc pl-5 text-sm/6 text-gray-600"></ul> -->
+                  </div>
+              </div>
+                </div>
+              </div>
+            </div>
+          
+            <div class="mt-6 flex items-center justify-end gap-x-6">
+              <!-- <button type="button" class="text-sm/6 font-semibold text-gray-900">Cancel</button> -->
+              <button type="submit" class="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-xs cursor-pointer hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">Validate</button>
+            </div>
+        </form>
+    </div>
+    <!-- Error message for invalid file types -->
+    <div id="fileError" class="error">Please upload only .xls, .xlsx, .xlsm, or .csv files.</div>
+
+    <!-- Loading spinner -->
+    <div id="loading" >
+        <div class="spinner"></div>
+        <p>Generating Template...</p>
+    </div>
+
+    <script>
+        // Function to validate file extensions
+        function validateFiles(files) {
+            const allowedExtensions = ['xls', 'xlsx', 'xlsm', 'csv'];
+            for (let i = 0; i < files.length; i++) {
+                const fileExtension = files[i].name.split('.').pop().toLowerCase();
+                if (!allowedExtensions.includes(fileExtension)) {
+                    return false; // Invalid file type
+                }
+            }
+            return true; // All files are valid
+        }
+
+        // Show the loading spinner when the form is submitted
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            const files = document.getElementById('id_file_field').files;
+            
+            // Validate files before submitting the form
+            if (!validateFiles(files)) {
+                // Prevent form submission if invalid file
+                event.preventDefault();
+                
+                // Show error message
+                document.getElementById('fileError').style.display = 'block';
+            } else {
+                // Hide error message if files are valid
+                document.getElementById('fileError').style.display = 'none';
+                
+                // Show the loading spinner
+                document.getElementById('loading').style.display = 'flex';
+            }
+        });
+
+        // Optionally, you can hide the spinner after the page is fully loaded
+        window.addEventListener('load', function() {
+            document.getElementById('loading').style.display = 'none';
+        });
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.querySelector('input[type="file"]'); // Select the file input generated by Django
+        const uploadedFilesList = document.getElementById('uploaded-files'); // List to display uploaded files
+
+// Prevent default drag behaviors
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+// Highlight the drop area when item is dragged over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, highlight, false);
+});
+
+// Remove highlight when item is dragged away
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, unhighlight, false);
+});
+
+// Handle dropped files
+dropArea.addEventListener('drop', handleDrop, false);
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function highlight() {
+    dropArea.classList.add('bg-gray-200', 'border-blue-500'); // Add highlight styles
+}
+
+function unhighlight() {
+    dropArea.classList.remove('bg-gray-200', 'border-blue-500'); // Remove highlight styles
+}
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+
+    handleFiles(files);
+}
+
+function handleFiles(files) {
+    // Update the file input with the dropped files
+    const dataTransfer = new DataTransfer();
+    for (let i = 0; i < files.length; i++) {
+        dataTransfer.items.add(files[i]);
+        addFileToList(files[i].name); // Add file name to the list
+    }
+    fileInput.files = dataTransfer.files; // Update the file input with the dropped files
+
+    // Optionally, you can upload the files here
+    for (let i = 0; i < files.length; i++) {
+        uploadFile(files[i]);
+    }
+}
+
+function addFileToList(fileName) {
+    const listItem = document.createElement('li');
+    listItem.textContent = fileName;
+    listItem.classList.add('bg-gray-100', 'p-2', 'rounded', 'mb-1'); // Add Tailwind CSS classes
+    uploadedFilesList.appendChild(listItem);
+}
+
+function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Example of an AJAX request to upload the file
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+
+        
+    </script>
+</body>
+</html>

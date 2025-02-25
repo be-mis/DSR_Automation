@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparison Table</title>
+</head>
+<body>
+    <h2>Comparison Data</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>BP CODE</th>
+                <th>Quantity Sold</th>
+                <th>Gross Sales</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row.BP_CODE }}</td>
+                    <td>{{ row.Quantity_Sold }}</td>
+                    <td>{{ row.Sales }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
