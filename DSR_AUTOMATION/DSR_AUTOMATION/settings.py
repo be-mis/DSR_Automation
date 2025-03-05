@@ -145,8 +145,9 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DB_SERVER="HANASERVERNBFI:30015"
-DB_USER="SYSTEM"
-DB_PASSWORD="Sb1@nbfi"
+#replace with your actual credentials
+DB_SERVER="server" 
+DB_USER="user" 
+DB_PASSWORD="password"
 DB_DATABASE_EPC="EPC_SBOLIVE"
 DB_DATABASE_NBFI="Z_NBFI_SBOTEST"
